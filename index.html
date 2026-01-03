@@ -2,103 +2,93 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Lua Obfuscator + Decrypt</title>
+<title>Lua Deobfuscator (Yasuscator)</title>
 <style>
-body{background:#333;color:#fff;font-family:Verdana;display:flex;justify-content:center;align-items:center;height:100vh}
-.card{background:rgba(68,68,68,.6);padding:20px;border-radius:10px;width:90%;max-width:500px}
-.inputBox{margin-bottom:10px;position:relative}
-.inputBox input,.inputBox select{width:100%;padding:10px;background:#444;border:1px solid #666;color:#fff;border-radius:5px}
-button{padding:12px;width:100%;background:#ff8f10;border:none;color:#000;font-weight:bold;border-radius:5px}
+body{
+  background:#222;
+  color:#fff;
+  font-family:monospace;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh
+}
+.box{
+  width:600px;
+  padding:20px;
+  background:#333;
+  border-radius:8px;
+  box-shadow:0 0 20px #000
+}
+input,button,textarea{
+  width:100%;
+  margin-top:10px;
+  padding:10px;
+  background:#111;
+  color:#0f0;
+  border:1px solid #555
+}
+button{
+  background:#ff8f10;
+  color:#000;
+  font-weight:bold;
+  cursor:pointer
+}
+textarea{
+  height:220px
+}
 </style>
 </head>
 <body>
 
-<form id="form">
-<div class="card">
-<h2>Lua Obfuscator</h2>
+<div class="box">
+  <h2>Lua Deobfuscator</h2>
 
-<div class="inputBox">
-<select id="mode">
-<option value="encrypt">Encrypt</option>
-<option value="decrypt">Decrypt</option>
-</select>
-</div>
+  <input type="file" id="file">
+  <input type="text" id="key" placeholder="Decrypt Key">
+  <button onclick="deobfuscate()">Deobfuscate</button>
 
-<div class="inputBox">
-<input type="file" id="file">
+  <textarea id="output" placeholder="Result..."></textarea>
 </div>
-
-<div class="inputBox">
-<input type="text" id="key" placeholder="Key">
-</div>
-
-<button type="submit">PROCESS</button>
-</div>
-</form>
 
 <script>
-const read = new FileReader();
+function deobfuscate(){
+  const file = document.getElementById("file").files[0];
+  const key = document.getElementById("key").value;
+  if(!file || !key) return alert("File & key required!");
 
-const xorEncrypt = (sc, key) => {
-  let out = [];
-  let k = 0;
-  for (let i = 0; i < sc.length; i++) {
-    out.push(sc.charCodeAt(i) + key.charCodeAt(k));
-    k++; if (k == key.length) k = 0;
-  }
-  return out;
-};
+  const reader = new FileReader();
+  reader.readAsText(file);
 
-const xorDecrypt = (tab, key) => {
-  let res = "";
-  let k = 0;
-  for (let i = 0; i < tab.length; i++) {
-    res += String.fromCharCode(tab[i] - key.charCodeAt(k));
-    k++; if (k == key.length) k = 0;
-  }
-  return res;
-};
+  reader.onload = () => {
+    const data = reader.result;
 
-const download = (data, name) => {
-  let blob = new Blob([data], {type:"text/plain"});
-  let a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
-};
+    // Ambil ARRAY ANGKA
+    const match = data.match(/\{([\d,\s]+)\}/);
+    if(!match) return alert("Encrypted array not found!");
 
-document.getElementById("form").addEventListener("submit", e => {
-  e.preventDefault();
+    const numbers = match[1].split(",").map(n=>parseInt(n.trim()));
+    let k = 0;
+    let out = "";
 
-  let mode = document.getElementById("mode").value;
-  let file = document.getElementById("file").files[0];
-  let key  = document.getElementById("key").value;
-
-  if (!file || !key) return alert("File & key wajib!");
-
-  read.readAsText(file);
-  read.onload = () => {
-    let txt = read.result;
-
-    if (mode === "encrypt") {
-      let enc = xorEncrypt(txt, key);
-      let lua = "local data={" + enc.join(",") + "} local k=[[" + key + "]] local o='' local i=0 for _,v in pairs(data) do i=i+1 o=o..string.char(v-string.byte(k,i)) if i==#k then i=0 end end load(o)()";
-      download(lua, "Encrypted_" + file.name);
+    for(let i=0;i<numbers.length;i++){
+      const dec = numbers[i] - key.charCodeAt(k);
+      out += String.fromCharCode(dec);
+      k++;
+      if(k >= key.length) k = 0;
     }
 
-    if (mode === "decrypt") {
-      try {
-        let nums = txt.match(/\{([0-9,]+)\}/)[1].split(",").map(Number);
-        let dec = xorDecrypt(nums, key);
-        download(dec, "Decrypted_" + file.name);
-      } catch {
-        alert("Decrypt gagal / key salah");
-      }
-    }
-  };
-});
+    document.getElementById("output").value = out;
+
+    // Auto download
+    const blob = new Blob([out], {type:"text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "deobfuscated.lua";
+    a.click();
+  }
+}
 </script>
+
 </body>
 </html>
