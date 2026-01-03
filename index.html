@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<title>Lua Deobfuscator (Yasuscator)</title>
+<title>Lua Deobfuscator FIXED</title>
 <style>
 body{
-  background:#222;
-  color:#fff;
+  background:#1e1e1e;
+  color:#0f0;
   font-family:monospace;
   display:flex;
   justify-content:center;
@@ -14,17 +14,16 @@ body{
   height:100vh
 }
 .box{
-  width:600px;
+  width:650px;
   padding:20px;
-  background:#333;
-  border-radius:8px;
-  box-shadow:0 0 20px #000
+  background:#111;
+  border:1px solid #333
 }
 input,button,textarea{
   width:100%;
   margin-top:10px;
   padding:10px;
-  background:#111;
+  background:#000;
   color:#0f0;
   border:1px solid #555
 }
@@ -34,54 +33,60 @@ button{
   font-weight:bold;
   cursor:pointer
 }
-textarea{
-  height:220px
-}
+textarea{height:260px}
 </style>
 </head>
 <body>
 
 <div class="box">
-  <h2>Lua Deobfuscator</h2>
+<h2>Lua Deobfuscator (FIX)</h2>
 
-  <input type="file" id="file">
-  <input type="text" id="key" placeholder="Decrypt Key">
-  <button onclick="deobfuscate()">Deobfuscate</button>
+<input type="file" id="file">
+<input type="text" id="key" value="monetloader">
+<button onclick="run()">DEOBFUSCATE</button>
 
-  <textarea id="output" placeholder="Result..."></textarea>
+<textarea id="out" placeholder="Lua result..."></textarea>
 </div>
 
 <script>
-function deobfuscate(){
+function run(){
   const file = document.getElementById("file").files[0];
-  const key = document.getElementById("key").value;
-  if(!file || !key) return alert("File & key required!");
+  const key  = document.getElementById("key").value;
+  if(!file || !key) return alert("File & key required");
 
-  const reader = new FileReader();
-  reader.readAsText(file);
+  const r = new FileReader();
+  r.readAsText(file);
 
-  reader.onload = () => {
-    const data = reader.result;
+  r.onload = ()=>{
+    const text = r.result;
 
-    // Ambil ARRAY ANGKA
-    const match = data.match(/\{([\d,\s]+)\}/);
-    if(!match) return alert("Encrypted array not found!");
+    // 🔥 ambil SEMUA array angka
+    const arrays = text.match(/\{[\d,\s]{50,}\}/g);
+    if(!arrays) return alert("No encrypted array found");
 
-    const numbers = match[1].split(",").map(n=>parseInt(n.trim()));
-    let k = 0;
+    // 🔥 pilih array PALING PANJANG
+    let payload = arrays.reduce((a,b)=>a.length>b.length?a:b);
+
+    const nums = payload
+      .replace(/[{}]/g,"")
+      .split(",")
+      .map(n=>parseInt(n.trim()));
+
     let out = "";
+    let k = 0;
 
-    for(let i=0;i<numbers.length;i++){
-      const dec = numbers[i] - key.charCodeAt(k);
-      out += String.fromCharCode(dec);
+    for(let i=0;i<nums.length;i++){
+      out += String.fromCharCode(
+        nums[i] - key.charCodeAt(k)
+      );
       k++;
       if(k >= key.length) k = 0;
     }
 
-    document.getElementById("output").value = out;
+    document.getElementById("out").value = out;
 
-    // Auto download
-    const blob = new Blob([out], {type:"text/plain"});
+    // auto download
+    const blob = new Blob([out],{type:"text/plain"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "deobfuscated.lua";
@@ -89,6 +94,5 @@ function deobfuscate(){
   }
 }
 </script>
-
 </body>
 </html>
